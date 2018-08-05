@@ -1,0 +1,10 @@
+<div class="row">
+  <div class="col-md-4" *ngFor="let image of images">
+    <div class="card mb-4 shadow-sm">
+      <app-images [image]="image"></app-images>
+    </div>
+  </div>
+  <div *ngIf="images.length === 0">
+    <h1 class="center">No images currently available</h1>
+  </div>
+</div>
