@@ -19,7 +19,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 // Set our api routes
 app.use('/api', api);
 
-app.use('/images', express.static('/home/images'))
+app.use('/images', express.static('/usr/src/imgs'))
 
 // Catch all other routes and return the index file
 app.get('*', (req, res) => {

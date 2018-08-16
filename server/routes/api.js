@@ -1,7 +1,7 @@
 const express = require('express');
 const fs = require("fs");
 const router = express.Router();
-const testFolder = '/home/images';
+const testFolder = '/usr/src/imgs';
 
 
 /* GET api listing. */
