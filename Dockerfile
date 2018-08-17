@@ -1,4 +1,4 @@
-# Build the Dockerfile with this command: docker run -ti --rm joecoolish/dynamic-images
+# Build the Dockerfile with this command: docker build -t joecoolish/dynamic-images .
 # All Dockerfile files start with a "FROM".  I added an alas (as builder) so that I can reference it later
 FROM node as builder
 
