@@ -3,11 +3,17 @@ const express = require('express');
 const path = require('path');
 const http = require('http');
 const bodyParser = require('body-parser');
+require('dotenv').config()
 
+
+const fileWatcher = require('./server/processors/imageWatch');
 // Get our API routes
 const api = require('./server/routes/api');
+const uploads = require('./server/routes/uploads');
 
 const app = express();
+
+fileWatcher.init();
 
 // Parsers for POST data
 app.use(bodyParser.json());
@@ -18,8 +24,10 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 // Set our api routes
 app.use('/api', api);
+app.use('/upload', uploads);
 
-app.use('/images', express.static('/usr/src/imgs'))
+app.use('/images', express.static(process.env.IMG_FOLDER || '/usr/src/imgs'))
+app.use('/raws', express.static(process.env.IMG_RAW || "/usr/src/imgsRaw"))
 
 // Catch all other routes and return the index file
 app.get('*', (req, res) => {

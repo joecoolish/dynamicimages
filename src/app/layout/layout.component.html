@@ -1,10 +1,20 @@
-<div class="row">
-  <div class="col-md-4" *ngFor="let image of images">
+<div class="row" *ngIf="data">
+  <div class="col-md-4" *ngFor="let image of data.raw">
     <div class="card mb-4 shadow-sm">
-      <app-images [image]="image"></app-images>
+      <app-images [image]="image" [metadata]="getMetadata(image)"></app-images>
     </div>
   </div>
   <div *ngIf="images.length === 0">
     <h1 class="center">No images currently available</h1>
   </div>
+</div>
+<div class="row">
+  <app-file-upload
+  projectId="100"
+  sectionId="107"
+  maxFiles="50"
+  maxSize="50"
+  fileExt="JPG, GIF, PNG"
+  (uploadStatus)="refreshImages($event)">
+</app-file-upload>
 </div>

@@ -31,6 +31,10 @@ COPY --from=builder /usr/src/app/server.js ./
 
 # We also need the npm package express installed
 RUN npm install express
+RUN npm install dotenv
+RUN npm install chokidar
+RUN npm install sharp
+RUN npm install multer
 
 # We need to make sure that the port 3000 is exposed.  Spoiler!  This actually doesn't expose the port!  I don't think this line is necessary
 # To expose the port, when we create the container, we use the -p flag.  W/o that, the port doesn't get exposed

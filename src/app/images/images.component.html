@@ -1,12 +1,21 @@
-<img class="card-img-top" style="width: 100%; height: 225px; display: block;" alt="Thumbnail [100%x225]" [src]="'/images/' + image">
+<a [routerLink]="['/image', image]">
+  <img class="card-img-top" style="margin: auto; width: auto; height: 225px; display: block;" alt="Thumbnail [100%x225]" [src]="'/raws/' + image">
+</a>
 <div class="card-body">
   <!-- <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit
     longer.</p> -->
+  <div class="float-right icon-container">
+    <span [title]="'Face Metadata loaded: ' + hasFace()">
+      <fa name="smile-o" [class.active]="hasFace()"></fa>
+    </span>
+    <span [title]="'OCR Metadata loaded: ' + hasOcr()">
+      <fa name="font" [class.active]="hasOcr()"></fa>
+    </span>
+    <span [title]="'YOLO Metadata loaded: ' + hasYolo()">
+      <fa name="yoast" [class.active]="hasYolo()"></fa>
+    </span>
+  </div>
   <div class="d-flex justify-content-between align-items-center">
-    <div class="btn-group">
-      <a class="btn btn-sm btn-outline-secondary" [href]="'/images/' + image">View</a>
-      <button class="btn btn-sm btn-outline-secondary" type="button">Edit</button>
-    </div>
-    <small class="text-muted">9 mins</small>
+    <a class="btn btn-sm btn-outline-secondary" [routerLink]="['/image', image]">View</a>
   </div>
 </div>
