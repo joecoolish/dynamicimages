@@ -3,7 +3,7 @@
 FROM node as builder
 
 # Just an FYI line.  Not needed
-MAINTAINER Joel Day joel.day@microsoft.com
+LABEL maintainer="Joel Day joel.day@microsoft.com"
 
 # From here on out, we'll be working in the /user/src/app directory. If it doesn't exist, create it!
 WORKDIR /usr/src/app

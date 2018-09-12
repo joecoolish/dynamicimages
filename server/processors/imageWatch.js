@@ -1,7 +1,10 @@
-// docker run --rm -p 5001:5000 avccandidate.azurecr.io/cognitive-services-face
-// docker run --rm -p 5000:5000 avccandidate.azurecr.io/cognitive-services-recognize-text
+// docker run --rm -p 5001:5000 --name facecontainer avccandidate.azurecr.io/cognitive-services-face
+// docker run --rm -p 5000:5000 --name ocrcontainer avccandidate.azurecr.io/cognitive-services-recognize-text
+// docker run --rm -v c:/imagesYOLO:/imagesToProcess/ -v c:/images:/darknet/dbesync/processed/ -p 12345:12345 --name yolocontainer joecoolish/yolo
+// docker run --rm -p 3000:3000 --link yolocontainer:yolocontainer --link ocrcontainer:ocrcontainer --link facecontainer:facecontainer -v c:/imagesRaw:/usr/src/imgsRaw/ -v c:/imagesYOLO:/usr/src/imgsToProcYOLO/ -v c:/images:/usr/src/imgs/ -v c:/imagesToProcess:/usr/src/imgsToProc/ --name dynamicimages joecoolish/dynamic-images
 
 const testFolder = process.env.IMG_TO_PROCESS_FOLDER || "/usr/src/imgsToProc";
+const yoloFolder = process.env.IMG_YOLO_FOLDER || "/usr/src/imgsToProcYOLO";
 const imgFolder = process.env.IMG_FOLDER || "/usr/src/imgs";
 const chokidar = require("chokidar");
 const request = require("request");
@@ -11,15 +14,16 @@ const net = require("net");
 const fs = require("fs");
 const ocrUrl =
   process.env.OCR_URL ||
-  "http://localhost:5000/vision/v2.0/recognizeTextDirect";
+  "http://ocrcontainer:5000/vision/v2.0/recognizeTextDirect";
 const faceUrl =
-  process.env.FACE_URL || "http://localhost:5001/face/v1.0/detect";
+  process.env.FACE_URL || "http://facecontainer:5000/face/v1.0/detect";
+const yoloHostname = process.env.YOLO_HOSTNAME || "yolocontainer";
 
 let watcher = null;
 let wsCollection = [];
 let wsOpen = false;
 
-var connection = net.createConnection(12345, "127.0.0.1"); //new WebSocket('ws://172.17.0.2:12345');
+var connection = net.createConnection(12345, yoloHostname); //new WebSocket('ws://172.17.0.2:12345');
 var log = console.log.bind(console);
 
 connection.on("connect", () => {
@@ -45,7 +49,7 @@ connection.on("close", () => {
     if (!connection.connecting) {
       connection.connect(
         12345,
-        "127.0.0.1"
+        yoloHostname
       );
     }
   }, 5000);
@@ -77,6 +81,16 @@ module.exports = {
       const fileName = "/imagesToProcess/" + path.basename(newFile);
 
       const imageMetadata = await imgProc.getUsableImage();
+      fs.exists(
+        path.join(yoloFolder, path.basename(newFile)),
+        async yoloCopyExisits => {
+          if (!yoloCopyExisits) {
+            await imgProc.copyFile(
+              newFile,
+              path.join(yoloFolder, path.basename(newFile))
+            );
+          }
+        });
 
       if (wsOpen) {
         log("Connection Open, sending file: " + fileName);
