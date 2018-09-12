@@ -1,5 +1,6 @@
 <a [routerLink]="['/image', image]">
-  <img class="card-img-top" style="margin: auto; width: auto; height: 225px; display: block;" alt="Thumbnail [100%x225]" [src]="'/raws/' + image">
+  <img class="card-img-top" style="margin: auto; width: auto; height: 225px; display: block;" alt="Thumbnail [100%x225]"
+    [src]="'/raws/' + image">
 </a>
 <div class="card-body">
   <!-- <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit
@@ -16,7 +17,9 @@
     </span>
   </div>
   <div class="d-flex justify-content-between align-items-center">
-    <a class="btn btn-sm btn-outline-secondary" [routerLink]="['/image', image]">View</a>
-    <a class="btn btn-sm btn-outline-secondary" [href]="'/reset/' + image">Reprocess</a>
+    <div class="btn-group">
+      <a class="btn btn-sm btn-outline-secondary" [routerLink]="['/image', image]">View</a>
+      <a class="btn btn-sm btn-outline-secondary" [href]="'/reset/' + image">Reprocess</a>
+    </div>
   </div>
 </div>
