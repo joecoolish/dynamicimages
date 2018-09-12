@@ -9,8 +9,11 @@ const imageProcessor = require("./imageProcessor");
 const path = require("path");
 const net = require("net");
 const fs = require("fs");
-const ocrUrl = process.env.OCR_URL ||  "http://localhost:5000/vision/v2.0/recognizeTextDirect";
-const faceUrl = process.env.FACE_URL || "http://localhost:5001/face/v1.0/detect";
+const ocrUrl =
+  process.env.OCR_URL ||
+  "http://localhost:5000/vision/v2.0/recognizeTextDirect";
+const faceUrl =
+  process.env.FACE_URL || "http://localhost:5001/face/v1.0/detect";
 
 let watcher = null;
 let wsCollection = [];
@@ -22,9 +25,31 @@ var log = console.log.bind(console);
 connection.on("connect", () => {
   wsOpen = true;
   log("Darknet Connection established");
-  wsCollection.forEach(f => connection.write(f));
+  if (wsCollection.length > 0) {
+    connection.write(wsCollection[0] + "\n", () => {
+      wsCollection.splice(0, 1);
+    });
+  }
 });
 
+connection.on("close", () => {
+  wsOpen = false;
+  log("Darknet connection closed, retrying to connect in 5 seconds");
+  const connectInterval = setTimeout(() => {
+    if (wsOpen) {
+      clearInterval(connectInterval);
+      return;
+    }
+
+    log("Darknet connection retry");
+    if (!connection.connecting) {
+      connection.connect(
+        12345,
+        "127.0.0.1"
+      );
+    }
+  }, 5000);
+});
 // Log errors
 
 connection.on("error", error => {
@@ -70,7 +95,7 @@ module.exports = {
 
       const reqOcr = request.post(ocrUrl, (err, resp, body) => {
         if (err) {
-          console.log("Error!");
+          console.log("Error reqOcr!");
           console.log(err);
           ocrDone = true;
         } else {
@@ -84,6 +109,10 @@ module.exports = {
           fs.createWriteStream(jsonFile).write(JSON.stringify(obj), () => {
             ocrDone = true;
             console.log("OCR File: " + jsonFile);
+
+            if (faceDone) {
+              imgProc.deleteOriginal();
+            }
           });
         }
       });
@@ -92,7 +121,7 @@ module.exports = {
 
       const reqFace = request.post(faceUrl, (err, resp, body) => {
         if (err) {
-          console.log("Error!");
+          console.log("Error! reqFace");
           console.log(err);
           faceDone = true;
         } else {
@@ -101,10 +130,17 @@ module.exports = {
             imgFolder,
             path.basename(newFile) + "-face.json"
           );
-          fs.createWriteStream(jsonFile).write(JSON.stringify({ obj, imageMetadata }), () => {
-            faceDone = true;
-            console.log("Face File: " + jsonFile);
-          });
+          fs.createWriteStream(jsonFile).write(
+            JSON.stringify({ obj, imageMetadata }),
+            () => {
+              faceDone = true;
+              console.log("Face File: " + jsonFile);
+
+              if (ocrDone) {
+                imgProc.deleteOriginal();
+              }
+            }
+          );
         }
       });
       const formFace = reqFace.form();
@@ -113,6 +149,7 @@ module.exports = {
   },
   stop: () => {
     // Stop watching.
+    log("Watcher stopped");
     if (watcher) watcher.close();
   }
 };

@@ -25,7 +25,7 @@ export class LayoutComponent implements OnInit {
             });
           }
         });
-    }, 1000);
+    }, 10000);
   }
 
   refreshImages(status) {

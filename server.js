@@ -10,7 +10,7 @@ const fileWatcher = require('./server/processors/imageWatch');
 // Get our API routes
 const api = require('./server/routes/api');
 const uploads = require('./server/routes/uploads');
-
+const reset = require('./server/routes/reset')
 const app = express();
 
 fileWatcher.init();
@@ -28,6 +28,8 @@ app.use('/upload', uploads);
 
 app.use('/images', express.static(process.env.IMG_FOLDER || '/usr/src/imgs'))
 app.use('/raws', express.static(process.env.IMG_RAW || "/usr/src/imgsRaw"))
+
+app.use('/reset', reset)
 
 // Catch all other routes and return the index file
 app.get('*', (req, res) => {
