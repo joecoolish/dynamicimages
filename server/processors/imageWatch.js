@@ -63,6 +63,7 @@ connection.on("error", error => {
 // connection.onerror = function (error) {
 //   console.error('WebSocket Error ' + error);
 // };
+const snooze = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 module.exports = {
   init: () => {
@@ -76,6 +77,7 @@ module.exports = {
     // Add event listeners.
     watcher.on("add", async newFile => {
       log(`File ${newFile} has been added`);
+      await snooze(500);
 
       const imgProc = new imageProcessor(newFile);
       const fileName = "/imagesToProcess/" + path.basename(newFile);

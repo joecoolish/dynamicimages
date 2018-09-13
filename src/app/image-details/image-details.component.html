@@ -27,4 +27,9 @@
       </g>
     </svg>
   </div>
+  <div *ngIf="showOcr">
+    <p *ngFor="let text of ocrSort(ocrMetadata.lines)">
+      {{text.text}}
+    </p>
+  </div>
 </div>

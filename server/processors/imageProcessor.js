@@ -68,18 +68,18 @@ class ImageProcessor {
     this.deleteOriginal();
 
     switch (path.extname(this._bigPath).toLowerCase()) {
-      case "jpg":
+      case ".jpg":
         await sharp(this._bigPath)
           .jpeg({
             quality: 75,
             chromaSubsampling: "4:4:4"
           })
-          .toFile(this._bigPath + "comp");
+          .toFile(this._path);
         break;
-      case "png":
+      case ".png":
         await sharp(this._bigPath)
           .png({ compressImage: 9 })
-          .toFile(this._bigPath + "comp");
+          .toFile(this._path);
         break;
     }
   }
@@ -110,17 +110,17 @@ class ImageProcessor {
       console.log("File size too big, compressing");
 
       await this.compressImage();
-      fileSize = this.getImageSize(this._bigPath + "comp");
+      fileSize = this.getImageSize(this._path);
       console.log("New file size: " + fileSize);
 
       if (fileSize <= maxBytes) {
-        await this.copyImageFromCompressed();
         return await this.getImageMetadata(this._path);
       }
       console.log("File size too big, resizing");
       await this.resizeImage();
     }
 
+    console.log("sending metadata");
     return await this.getImageMetadata(this._path);
   }
 }
