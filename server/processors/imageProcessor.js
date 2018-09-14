@@ -29,9 +29,9 @@ class ImageProcessor {
           return;
         }
 
-        const rd = fs.createReadStream(source);
+        const rd = fs.createReadStream(source, { autoClose: true });
         rd.on("error", err => reject(err));
-        const wr = fs.createWriteStream(target);
+        const wr = fs.createWriteStream(target, { autoClose: true });
         wr.on("error", err => reject(err));
         wr.on("close", () => {
           if (resolved) {

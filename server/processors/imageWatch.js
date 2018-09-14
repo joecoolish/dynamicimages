@@ -26,12 +26,14 @@ let wsOpen = false;
 var connection = net.createConnection(12345, yoloHostname); //new WebSocket('ws://172.17.0.2:12345');
 var log = console.log.bind(console);
 
+connection.setKeepAlive(false);
 connection.on("connect", () => {
   wsOpen = true;
   log("Darknet Connection established");
   if (wsCollection.length > 0) {
     connection.write(wsCollection[0] + "\n", () => {
       wsCollection.splice(0, 1);
+      // connection.end();
     });
   }
 });
@@ -64,6 +66,32 @@ connection.on("error", error => {
 //   console.error('WebSocket Error ' + error);
 // };
 const snooze = ms => new Promise(resolve => setTimeout(resolve, ms));
+const waitFileReady = (file, ms, retries) =>
+  new Promise((resolve, reject) => {
+    let loopInterval = 0;
+
+    const loop = () => {
+      fs.open(file, "r+", (err, fd) => {
+        if (!err) {
+          clearInterval(loopInterval);
+
+          fs.close(fd, cerr => {
+            if (cerr) reject(cerr);
+            else resolve();
+          });
+          return;
+        }
+
+        retries--;
+
+        if (retries <= 0) {
+          reject(err);
+        }
+      });
+    };
+
+    loopInterval = setInterval(loop, ms || 500);
+  });
 const imagesProcessing = [];
 
 const removeImageProcessing = file => {
@@ -76,28 +104,40 @@ const removeImageProcessing = file => {
 const imageProcessFunc = async newFile => {
   log(`File ${newFile} has been added`);
   imagesProcessing.push(path.basename(newFile));
-  await snooze(500);
+
+  //await snooze(500);
+  try {
+    await waitFileReady(newFile, 100, 20);
+  } catch (error) {
+    log("waiting for file to be ready failed!");
+    log(error);
+  }
 
   const imgProc = new imageProcessor(newFile);
   const fileName = "/imagesToProcess/" + path.basename(newFile);
 
-  const imageMetadata = await imgProc.getUsableImage();
-  fs.exists(
-    path.join(yoloFolder, path.basename(newFile)),
-    async yoloCopyExisits => {
-      if (!yoloCopyExisits) {
-        await imgProc.copyFile(
-          newFile,
-          path.join(yoloFolder, path.basename(newFile))
-        );
-      }
-    }
-  );
+  let imageMetadata = null;
+  try {
+    imageMetadata = await imgProc.getUsableImage();
+  } catch (error) {
+    log("Getting usable image failed!");
+    log(error);
+  }
+  const yoloFilePath = path.join(yoloFolder, path.basename(newFile));
+
+  try {
+    await imgProc.copyFile(newFile, yoloFilePath, false);
+    await waitFileReady(newFile, 100, 20);
+  } catch (error) {
+    log("Copying file to YOLO directory failed!");
+    log(error);
+  }
 
   if (wsOpen) {
     log("Connection Open, sending file: " + fileName);
     const writeSuccess = connection.write(fileName + "\n", () => {
       log("write callback for " + fileName);
+      // connection.end();
     });
 
     log("writeSuccess: " + writeSuccess);
@@ -108,6 +148,13 @@ const imageProcessFunc = async newFile => {
 
   let faceDone = false;
   let ocrDone = false;
+
+  try {
+    await waitFileReady(newFile, 250, 20);
+  } catch (error) {
+    log("waiting for file to add to reqOcr failed!");
+    log(error);
+  }
 
   const reqOcr = request.post(ocrUrl, (err, resp, body) => {
     if (err) {
@@ -122,19 +169,23 @@ const imageProcessFunc = async newFile => {
       );
 
       obj.imageMetadata = imageMetadata;
-      fs.createWriteStream(jsonFile).write(JSON.stringify(obj), () => {
-        ocrDone = true;
-        console.log("OCR File: " + jsonFile);
+      fs.createWriteStream(jsonFile, { autoClose: true }).write(
+        JSON.stringify(obj),
+        () => {
+          ocrDone = true;
+          console.log("OCR File: " + jsonFile);
 
-        if (faceDone) {
-          imgProc.deleteOriginal();
-          removeImageProcessing(newFile);
+          if (faceDone) {
+            imgProc.deleteOriginal();
+            removeImageProcessing(newFile);
+          }
         }
-      });
+      );
     }
   });
+
   const formOcr = reqOcr.form();
-  formOcr.append("file", fs.createReadStream(newFile));
+  formOcr.append("file", fs.createReadStream(newFile, { autoClose: true }));
 
   const reqFace = request.post(faceUrl, (err, resp, body) => {
     if (err) {
@@ -147,7 +198,7 @@ const imageProcessFunc = async newFile => {
         imgFolder,
         path.basename(newFile) + "-face.json"
       );
-      fs.createWriteStream(jsonFile).write(
+      fs.createWriteStream(jsonFile, { autoClose: true }).write(
         JSON.stringify({ obj, imageMetadata }),
         () => {
           faceDone = true;
@@ -161,8 +212,9 @@ const imageProcessFunc = async newFile => {
       );
     }
   });
+
   const formFace = reqFace.form();
-  formFace.append("file", fs.createReadStream(newFile));
+  formFace.append("file", fs.createReadStream(newFile, { autoClose: true }));
 };
 
 let timeout = null;
@@ -181,16 +233,26 @@ module.exports = {
 
     // Something to use when events are received.
     // Add event listeners.
-    watcher.on("add", imageProcessFunc);
+    watcher.on("add", async newFile => {
+      log("File Added: " + newFile);
+      try {
+        await imageProcessFunc(newFile);
+      } catch (error) {
+        log("watcher on add failed!");
+        log(error);
+      }
+    });
 
     timeout = setInterval(() => {
       fs.readdir(testFolder, (error, files) => {
-        const filesToProcess = files.filter(f => imagesProcessing.indexOf(f) < 0);
+        const filesToProcess = files.filter(
+          f => imagesProcessing.indexOf(f) < 0
+        );
 
         filesToProcess.forEach(val => {
           log("Found file that slipped through! " + val);
           imageProcessFunc(val);
-        })
+        });
       });
     }, 1000);
   },

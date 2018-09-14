@@ -18,9 +18,8 @@ const express = require("express"),
     storage: fileStorage
   }).array("file[]", 50);
 
-
 router.post("/", uploadStrategy, (req, res) => {
-  //console.log('files', req.files);
+  console.log("files", req.files.map(f => f.filename));
   res.send(req.files);
 });
 
