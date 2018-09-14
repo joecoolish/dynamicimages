@@ -64,6 +64,108 @@ connection.on("error", error => {
 //   console.error('WebSocket Error ' + error);
 // };
 const snooze = ms => new Promise(resolve => setTimeout(resolve, ms));
+const imagesProcessing = [];
+
+const removeImageProcessing = file => {
+  var index = imagesProcessing.indexOf(file);
+  if (index > -1) {
+    imagesProcessing.splice(index, 1);
+  }
+};
+
+const imageProcessFunc = async newFile => {
+  log(`File ${newFile} has been added`);
+  imagesProcessing.push(path.basename(newFile));
+  await snooze(500);
+
+  const imgProc = new imageProcessor(newFile);
+  const fileName = "/imagesToProcess/" + path.basename(newFile);
+
+  const imageMetadata = await imgProc.getUsableImage();
+  fs.exists(
+    path.join(yoloFolder, path.basename(newFile)),
+    async yoloCopyExisits => {
+      if (!yoloCopyExisits) {
+        await imgProc.copyFile(
+          newFile,
+          path.join(yoloFolder, path.basename(newFile))
+        );
+      }
+    }
+  );
+
+  if (wsOpen) {
+    log("Connection Open, sending file: " + fileName);
+    const writeSuccess = connection.write(fileName + "\n", () => {
+      log("write callback for " + fileName);
+    });
+
+    log("writeSuccess: " + writeSuccess);
+  } else {
+    log("Connection Closed, caching file: " + fileName);
+    wsCollection.push(fileName);
+  }
+
+  let faceDone = false;
+  let ocrDone = false;
+
+  const reqOcr = request.post(ocrUrl, (err, resp, body) => {
+    if (err) {
+      console.log("Error reqOcr!");
+      console.log(err);
+      ocrDone = true;
+    } else {
+      const obj = JSON.parse(body);
+      const jsonFile = path.join(
+        imgFolder,
+        path.basename(newFile) + "-ocr.json"
+      );
+
+      obj.imageMetadata = imageMetadata;
+      fs.createWriteStream(jsonFile).write(JSON.stringify(obj), () => {
+        ocrDone = true;
+        console.log("OCR File: " + jsonFile);
+
+        if (faceDone) {
+          imgProc.deleteOriginal();
+          removeImageProcessing(newFile);
+        }
+      });
+    }
+  });
+  const formOcr = reqOcr.form();
+  formOcr.append("file", fs.createReadStream(newFile));
+
+  const reqFace = request.post(faceUrl, (err, resp, body) => {
+    if (err) {
+      console.log("Error! reqFace");
+      console.log(err);
+      faceDone = true;
+    } else {
+      const obj = JSON.parse(body);
+      const jsonFile = path.join(
+        imgFolder,
+        path.basename(newFile) + "-face.json"
+      );
+      fs.createWriteStream(jsonFile).write(
+        JSON.stringify({ obj, imageMetadata }),
+        () => {
+          faceDone = true;
+          console.log("Face File: " + jsonFile);
+
+          if (ocrDone) {
+            imgProc.deleteOriginal();
+            removeImageProcessing(newFile);
+          }
+        }
+      );
+    }
+  });
+  const formFace = reqFace.form();
+  formFace.append("file", fs.createReadStream(newFile));
+};
+
+let timeout = null;
 
 module.exports = {
   init: () => {
@@ -73,99 +175,29 @@ module.exports = {
       persistent: true
     });
 
+    watcher.on("all", (event, path) => {
+      //console.log(event, path);
+    });
+
     // Something to use when events are received.
     // Add event listeners.
-    watcher.on("add", async newFile => {
-      log(`File ${newFile} has been added`);
-      await snooze(500);
+    watcher.on("add", imageProcessFunc);
 
-      const imgProc = new imageProcessor(newFile);
-      const fileName = "/imagesToProcess/" + path.basename(newFile);
+    timeout = setInterval(() => {
+      fs.readdir(testFolder, (error, files) => {
+        const filesToProcess = files.filter(f => imagesProcessing.indexOf(f) < 0);
 
-      const imageMetadata = await imgProc.getUsableImage();
-      fs.exists(
-        path.join(yoloFolder, path.basename(newFile)),
-        async yoloCopyExisits => {
-          if (!yoloCopyExisits) {
-            await imgProc.copyFile(
-              newFile,
-              path.join(yoloFolder, path.basename(newFile))
-            );
-          }
-        });
-
-      if (wsOpen) {
-        log("Connection Open, sending file: " + fileName);
-        const writeSuccess = connection.write(fileName + "\n", () => {
-          log("write callback for " + fileName);
-        });
-
-        log("writeSuccess: " + writeSuccess);
-      } else {
-        log("Connection Closed, caching file: " + fileName);
-        wsCollection.push(fileName);
-      }
-
-      let faceDone = false;
-      let ocrDone = false;
-
-      const reqOcr = request.post(ocrUrl, (err, resp, body) => {
-        if (err) {
-          console.log("Error reqOcr!");
-          console.log(err);
-          ocrDone = true;
-        } else {
-          const obj = JSON.parse(body);
-          const jsonFile = path.join(
-            imgFolder,
-            path.basename(newFile) + "-ocr.json"
-          );
-
-          obj.imageMetadata = imageMetadata;
-          fs.createWriteStream(jsonFile).write(JSON.stringify(obj), () => {
-            ocrDone = true;
-            console.log("OCR File: " + jsonFile);
-
-            if (faceDone) {
-              imgProc.deleteOriginal();
-            }
-          });
-        }
+        filesToProcess.forEach(val => {
+          log("Found file that slipped through! " + val);
+          imageProcessFunc(val);
+        })
       });
-      const formOcr = reqOcr.form();
-      formOcr.append("file", fs.createReadStream(newFile));
-
-      const reqFace = request.post(faceUrl, (err, resp, body) => {
-        if (err) {
-          console.log("Error! reqFace");
-          console.log(err);
-          faceDone = true;
-        } else {
-          const obj = JSON.parse(body);
-          const jsonFile = path.join(
-            imgFolder,
-            path.basename(newFile) + "-face.json"
-          );
-          fs.createWriteStream(jsonFile).write(
-            JSON.stringify({ obj, imageMetadata }),
-            () => {
-              faceDone = true;
-              console.log("Face File: " + jsonFile);
-
-              if (ocrDone) {
-                imgProc.deleteOriginal();
-              }
-            }
-          );
-        }
-      });
-      const formFace = reqFace.form();
-      formFace.append("file", fs.createReadStream(newFile));
-    });
+    }, 1000);
   },
   stop: () => {
     // Stop watching.
     log("Watcher stopped");
     if (watcher) watcher.close();
+    if (timeout) clearInterval(timeout);
   }
 };

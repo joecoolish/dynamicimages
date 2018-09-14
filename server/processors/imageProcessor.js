@@ -1,9 +1,17 @@
 const fs = require("fs"); //Load the filesystem module
 const sharp = require("sharp");
+const imagemin = require("imagemin");
+const imageminJpegtran = require("imagemin-jpegtran");
+const imageminPngquant = require("imagemin-pngquant");
 const path = require("path");
 const rawFolder = process.env.IMG_RAW || "/usr/src/imgsRaw";
+const tempFolder = process.env.TEMP_IMGS || "/imgs/temp/";
 
 const maxBytes = 4194304;
+
+if (!fs.existsSync(tempFolder)) {
+  fs.mkdirSync(tempFolder);
+}
 
 class ImageProcessor {
   constructor(path) {
@@ -46,8 +54,10 @@ class ImageProcessor {
   }
 
   deleteOriginal() {
-    console.log("Deleting image");
-    fs.unlinkSync(this._path);
+    if (fs.existsSync(this._path)) {
+      console.log("Deleting image");
+      fs.unlinkSync(this._path);
+    }
   }
 
   copyImageFromCompressed() {
@@ -57,31 +67,47 @@ class ImageProcessor {
   }
 
   async resizeImage() {
-    this.deleteOriginal();
-    console.log("resizing");
-    await sharp(this._bigPath)
-      .resize(1024)
-      .toFile(this._path);
+    let fileSize = this.getImageSize(this._path);
+    const tempFile = path.join(tempFolder, path.basename(this._path));
+
+    while (fileSize > maxBytes) {
+      await this.copyFile(this._path, tempFile);
+      //this.deleteOriginal();
+      console.log("resizing: " + fileSize);
+      const md = await sharp(tempFile).metadata();
+      await sharp(tempFile)
+        .resize(Math.floor(md.width * 0.9))
+        .toFile(this._path);
+
+      await this.compressImage(this._path);
+      fileSize = this.getImageSize(this._path);
+    }
   }
 
-  async compressImage() {
-    this.deleteOriginal();
+  async compressImage(imgPath) {
+    //this.deleteOriginal();
 
-    switch (path.extname(this._bigPath).toLowerCase()) {
-      case ".jpg":
-        await sharp(this._bigPath)
-          .jpeg({
-            quality: 75,
-            chromaSubsampling: "4:4:4"
-          })
-          .toFile(this._path);
-        break;
-      case ".png":
-        await sharp(this._bigPath)
-          .png({ compressImage: 9 })
-          .toFile(this._path);
-        break;
-    }
+    imgPath || (imgPath = this._bigPath);
+
+    await imagemin([imgPath], path.dirname(this._path), {
+      plugins: [imageminJpegtran(), imageminPngquant({ quality: "65-80" })]
+    });
+
+    // switch (path.extname(this._bigPath).toLowerCase()) {
+    //   case ".jpg":
+    //     await sharp(this._bigPath)
+    //       .jpeg({
+    //         quality: 75,
+    //         chromaSubsampling: "4:4:4"
+    //       })
+    //       .toFile(this._path);
+    //     break;
+    //   case ".png":
+    //     await sharp(this._bigPath)
+    //       .png({ compressionLevel: 9, adaptiveFiltering: true, force: true })
+    //       .toFile(this._path);
+    //     break;
+    // }
   }
 
   getImageSize(path) {
@@ -103,7 +129,7 @@ class ImageProcessor {
       return await this.getImageMetadata(this._path);
     }
 
-    if (fileSize > maxBytes * 2) {
+    if (fileSize > maxBytes * 3) {
       console.log("File size too big, resizing");
       await this.resizeImage();
     } else {

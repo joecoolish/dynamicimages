@@ -39,6 +39,9 @@ RUN npm install chokidar
 RUN npm install sharp
 RUN npm install multer
 RUN npm install request
+RUN npm install imagemin
+RUN npm install imagemin-jpegtran
+RUN npm install imagemin-pngquant
 
 # We need to make sure that the port 3000 is exposed.  Spoiler!  This actually doesn't expose the port!  I don't think this line is necessary
 # To expose the port, when we create the container, we use the -p flag.  W/o that, the port doesn't get exposed
