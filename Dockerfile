@@ -30,7 +30,7 @@ COPY --from=builder /usr/src/app/server/ ./server/
 COPY --from=builder /usr/src/app/server.js ./
 
 RUN apk add vips-dev fftw-dev --update-cache --repository https://dl-3.alpinelinux.org/alpine/edge/testing/
-RUN apk add --update binutils g++ gcc make
+RUN apk add --update binutils g++ gcc make nasm
 
 # We also need the npm package express installed
 RUN npm install express
@@ -40,7 +40,6 @@ RUN npm install sharp
 RUN npm install multer
 RUN npm install request
 RUN npm install imagemin
-RUN npm install imagemin-jpegtran
 RUN npm install imagemin-pngquant
 
 # We need to make sure that the port 3000 is exposed.  Spoiler!  This actually doesn't expose the port!  I don't think this line is necessary

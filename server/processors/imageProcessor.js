@@ -1,7 +1,6 @@
 const fs = require("fs"); //Load the filesystem module
 const sharp = require("sharp");
 const imagemin = require("imagemin");
-const imageminJpegtran = require("imagemin-jpegtran");
 const imageminPngquant = require("imagemin-pngquant");
 const path = require("path");
 const rawFolder = process.env.IMG_RAW || "/usr/src/imgsRaw";
@@ -29,9 +28,13 @@ class ImageProcessor {
           return;
         }
 
-        const rd = fs.createReadStream(source, { autoClose: true });
+        const rd = fs.createReadStream(source, {
+          autoClose: true
+        });
         rd.on("error", err => reject(err));
-        const wr = fs.createWriteStream(target, { autoClose: true });
+        const wr = fs.createWriteStream(target, {
+          autoClose: true
+        });
         wr.on("error", err => reject(err));
         wr.on("close", () => {
           if (resolved) {
@@ -51,6 +54,34 @@ class ImageProcessor {
     this._bigPath = path.join(rawFolder, fileName);
 
     return this.copyFile(this._path, this._bigPath, false);
+  }
+
+  waitFileReady(file, ms, retries) {
+    return new Promise((resolve, reject) => {
+      let loopInterval = 0;
+
+      const loop = () => {
+        fs.open(file, "r+", (err, fd) => {
+          if (!err) {
+            clearInterval(loopInterval);
+
+            fs.close(fd, cerr => {
+              if (cerr) reject(cerr);
+              else resolve();
+            });
+            return;
+          }
+
+          retries--;
+
+          if (retries <= 0) {
+            reject(err);
+          }
+        });
+      };
+
+      loopInterval = setInterval(loop, ms || 500);
+    });
   }
 
   deleteOriginal() {
@@ -89,9 +120,35 @@ class ImageProcessor {
 
     imgPath || (imgPath = this._bigPath);
 
-    await imagemin([imgPath], path.dirname(this._path), {
-      plugins: [imageminJpegtran(), imageminPngquant({ quality: "65-80" })]
-    });
+    await this.waitFileReady(imgPath, 150, 10);
+    const fileSize = await this.getImageSize(imgPath);
+    console.log(`compressing image: ${imgPath}, Size: ${fileSize}`);
+
+    switch (path.extname(this._bigPath).toLowerCase()) {
+
+      case ".jpg":
+        await sharp(imgPath)
+          .jpeg({
+            quality: 75,
+            chromaSubsampling: "4:4:4"
+          })
+          .toFile(this._path);
+        break;
+
+      case ".png":
+
+        try {
+          await imagemin([imgPath], path.dirname(this._path), {
+            plugins: [imageminPngquant({
+              quality: "65-80"
+            })]
+          });
+        } catch (error) {
+          console.log("Error compressing image: " + imgPath);
+          console.error(error);
+        }
+        break;
+    }
 
     // switch (path.extname(this._bigPath).toLowerCase()) {
     //   case ".jpg":

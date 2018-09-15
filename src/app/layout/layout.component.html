@@ -1,8 +1,6 @@
 <div class="row" *ngIf="data">
   <div class="col-md-4" *ngFor="let image of data.raw">
-    <div class="card mb-4 shadow-sm">
-      <app-images [image]="image" [metadata]="getMetadata(image)"></app-images>
-    </div>
+    <app-images [image]="image" [metadata]="getMetadata(image)"></app-images>
   </div>
   <div *ngIf="images.length === 0">
     <h1 class="center">No images currently available</h1>

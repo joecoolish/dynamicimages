@@ -1,7 +1,7 @@
 // docker run --rm -p 5001:5000 --name facecontainer avccandidate.azurecr.io/cognitive-services-face
 // docker run --rm -p 5000:5000 --name ocrcontainer avccandidate.azurecr.io/cognitive-services-recognize-text
 // docker run --rm -v c:/imagesYOLO:/imagesToProcess/ -v c:/images:/darknet/dbesync/processed/ -p 12345:12345 --name yolocontainer joecoolish/yolo
-// docker run --rm -p 3000:3000 --link yolocontainer:yolocontainer --link ocrcontainer:ocrcontainer --link facecontainer:facecontainer -v c:/imagesRaw:/usr/src/imgsRaw/ -v c:/imagesYOLO:/usr/src/imgsToProcYOLO/ -v c:/images:/usr/src/imgs/ -v c:/imagesToProcess:/usr/src/imgsToProc/ --name dynamicimages joecoolish/dynamic-images
+// docker run --rm -p 3000:3000 --link yolocontainer:yolocontainer --link ocrcontainer:ocrcontainer --link facecontainer:facecontainer -v c:/imagesRaw:/usr/src/imgsRaw/ -v c:/imagesYOLO:/usr/src/imgsToProcYOLO/ -v c:/images:/usr/src/imgs/ -v c:/imagesToProcess:/usr/src/imgsToProc/ -v c:/Temp/imgs:/imgs/temp --name dynamicimages joecoolish/dynamic-images
 
 const testFolder = process.env.IMG_TO_PROCESS_FOLDER || "/usr/src/imgsToProc";
 const yoloFolder = process.env.IMG_YOLO_FOLDER || "/usr/src/imgsToProcYOLO";
@@ -169,7 +169,9 @@ const imageProcessFunc = async newFile => {
       );
 
       obj.imageMetadata = imageMetadata;
-      fs.createWriteStream(jsonFile, { autoClose: true }).write(
+      fs.createWriteStream(jsonFile, {
+        autoClose: true
+      }).write(
         JSON.stringify(obj),
         () => {
           ocrDone = true;
@@ -185,7 +187,9 @@ const imageProcessFunc = async newFile => {
   });
 
   const formOcr = reqOcr.form();
-  formOcr.append("file", fs.createReadStream(newFile, { autoClose: true }));
+  formOcr.append("file", fs.createReadStream(newFile, {
+    autoClose: true
+  }));
 
   const reqFace = request.post(faceUrl, (err, resp, body) => {
     if (err) {
@@ -198,8 +202,13 @@ const imageProcessFunc = async newFile => {
         imgFolder,
         path.basename(newFile) + "-face.json"
       );
-      fs.createWriteStream(jsonFile, { autoClose: true }).write(
-        JSON.stringify({ obj, imageMetadata }),
+      fs.createWriteStream(jsonFile, {
+        autoClose: true
+      }).write(
+        JSON.stringify({
+          obj,
+          imageMetadata
+        }),
         () => {
           faceDone = true;
           console.log("Face File: " + jsonFile);
@@ -214,7 +223,9 @@ const imageProcessFunc = async newFile => {
   });
 
   const formFace = reqFace.form();
-  formFace.append("file", fs.createReadStream(newFile, { autoClose: true }));
+  formFace.append("file", fs.createReadStream(newFile, {
+    autoClose: true
+  }));
 };
 
 let timeout = null;
@@ -243,17 +254,38 @@ module.exports = {
       }
     });
 
-    timeout = setInterval(() => {
-      fs.readdir(testFolder, (error, files) => {
-        const filesToProcess = files.filter(
-          f => imagesProcessing.indexOf(f) < 0
-        );
+    timeout = setInterval(async () => {
+      let files = [];
 
-        filesToProcess.forEach(val => {
-          log("Found file that slipped through! " + val);
-          imageProcessFunc(val);
-        });
-      });
+      try {
+        files = fs.readdirSync(testFolder);
+      } catch (error) {
+        if (error) {
+          log("readdir failed in loop");
+          log(error);
+          return;
+        }
+      }
+
+      if (!files || files.length === 0) return;
+
+      const filesToProcess = files.filter(
+        f => imagesProcessing.indexOf(f) < 0
+      );
+
+      const ftpLeng = filesToProcess.length;
+      for (let i = 0; i < ftpLeng; i++) {
+        let val = path.join(testFolder,filesToProcess[i]);
+        log("Found file that slipped through! " + val);
+
+        try {
+          await waitFileReady(val, 100, 20);
+          await imageProcessFunc(val);
+        } catch (error) {
+          log("Slipped file wait failed!")
+          log(error);
+        }
+      }
     }, 1000);
   },
   stop: () => {
