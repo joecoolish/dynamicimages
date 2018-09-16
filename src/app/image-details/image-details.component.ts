@@ -66,7 +66,7 @@ export class ImageDetailsComponent implements OnInit {
 
   hasYolo() {
     return (
-      (this.metadata || []).filter(item => item.endsWith('.png')).length > 0
+      (this.metadata || []).filter(item => item.endsWith('.jpg')).length > 0
     );
   }
 

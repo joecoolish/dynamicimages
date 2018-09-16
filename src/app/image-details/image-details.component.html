@@ -14,7 +14,7 @@
     </div>
   </div>
   <div class="image-container">
-    <img *ngIf="hasYolo() && showYolo" style="position: absolute;" [src]="'/images/' + id + '.png'">
+    <img *ngIf="hasYolo() && showYolo" style="position: absolute;" [src]="'/images/' + id + '.jpg'">
     <img [src]="'/raws/' + id">
 
     <svg style="width: auto;height: 100%" *ngIf="ocrMetadata && faceMetadata" [attr.viewBox]="'0 0 ' + ocrMetadata.imageMetadata.width + ' ' + ocrMetadata.imageMetadata.height">
