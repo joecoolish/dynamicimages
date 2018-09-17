@@ -134,6 +134,7 @@ const imageProcessFunc = async newFile => {
   }
 
   if (wsOpen) {
+    wsOpen = false;
     log("Connection Open, sending file: " + fileName);
     const writeSuccess = connection.write(fileName + "\n", () => {
       log("write callback for " + fileName);
@@ -177,13 +178,19 @@ const imageProcessFunc = async newFile => {
       );
 
       obj.imageMetadata = imageMetadata;
-      fs.createWriteStream(jsonFile, {
-        autoClose: true
-      }).write(
+      fs.writeFile(jsonFile,
         JSON.stringify(obj),
-        () => {
+        'utf8',
+        (err) => {
           ocrDone = true;
-          console.log("OCR File: " + jsonFile);
+
+          if (err) {
+            console.log("An error occured while writing OCR JSON Object to File: " + jsonFile);
+            console.log(err);
+          }
+          else {
+            console.log("OCR File: " + jsonFile);
+          }
 
           if (faceDone) {
             imgProc.deleteOriginal();
@@ -208,16 +215,19 @@ const imageProcessFunc = async newFile => {
         imgFolder,
         path.basename(newFile) + "-face.json"
       );
-      fs.createWriteStream(jsonFile, {
-        autoClose: true
-      }).write(
-        JSON.stringify({
-          obj,
-          imageMetadata
-        }),
-        () => {
+      fs.writeFile(jsonFile,
+        JSON.stringify(obj),
+        'utf8',
+        (err) => {
           faceDone = true;
-          console.log("Face File: " + jsonFile);
+
+          if (err) {
+            console.log("An error occured while writing Face JSON Object to File: " + jsonFile);
+            console.log(err);
+          }
+          else {
+            console.log("Face File: " + jsonFile);
+          }
 
           if (ocrDone) {
             imgProc.deleteOriginal();
@@ -279,7 +289,7 @@ module.exports = {
 
       const ftpLeng = filesToProcess.length;
       for (let i = 0; i < ftpLeng; i++) {
-        let val = path.join(testFolder,filesToProcess[i]);
+        let val = path.join(testFolder, filesToProcess[i]);
         log("Found file that slipped through! " + val);
 
         try {
