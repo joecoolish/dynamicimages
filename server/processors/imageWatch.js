@@ -3,9 +3,9 @@
 // docker run --rm -v c:/imagesYOLO:/imagesToProcess/ -v c:/images:/darknet/dbesync/processed/ -p 12345:12345 --name yolocontainer joecoolish/yolo
 // docker run --rm -p 3000:3000 --link yolocontainer:yolocontainer --link ocrcontainer:ocrcontainer --link facecontainer:facecontainer -v c:/imagesRaw:/usr/src/imgsRaw/ -v c:/imagesYOLO:/usr/src/imgsToProcYOLO/ -v c:/images:/usr/src/imgs/ -v c:/imagesToProcess:/usr/src/imgsToProc/ -v c:/Temp/imgs:/imgs/temp --name dynamicimages joecoolish/dynamic-images
 
-const testFolder = process.env.IMG_TO_PROCESS_FOLDER || "/usr/src/imgsToProc";
-const yoloFolder = process.env.IMG_YOLO_FOLDER || "/usr/src/imgsToProcYOLO";
-const imgFolder = process.env.IMG_FOLDER || "/usr/src/imgs";
+const testFolder = process.env.IMG_TO_PROCESS_FOLDER || "/dbelocal/input";
+const yoloFolder = process.env.IMG_YOLO_FOLDER || "/dbelocal/yolo_input";
+const imgFolder = process.env.IMG_FOLDER || "/dbesync/processed";
 const chokidar = require("chokidar");
 const request = require("request");
 const imageProcessor = require("./imageProcessor");
@@ -114,7 +114,7 @@ const imageProcessFunc = async newFile => {
   }
 
   const imgProc = new imageProcessor(newFile);
-  const fileName = "/imagesToProcess/" + path.basename(newFile);
+  const fileName = "/dbelocal/input/" + path.basename(newFile);
 
   let imageMetadata = null;
   try {
@@ -216,7 +216,7 @@ const imageProcessFunc = async newFile => {
         path.basename(newFile) + "-face.json"
       );
       fs.writeFile(jsonFile,
-        JSON.stringify(obj),
+        JSON.stringify({ obj, imageMetadata }),
         'utf8',
         (err) => {
           faceDone = true;

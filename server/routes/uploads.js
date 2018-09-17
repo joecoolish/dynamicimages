@@ -2,7 +2,7 @@ if (process.env.NODE_ENV !== "production") {
   require("dotenv").load();
 }
 
-const testFolder = process.env.IMG_TO_PROCESS_FOLDER || "/usr/src/imgsToProc";
+const testFolder = process.env.IMG_TO_PROCESS_FOLDER || "/dbelocal/input";
 const express = require("express"),
   router = express.Router(),
   multer = require("multer"),

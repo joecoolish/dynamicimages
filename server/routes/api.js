@@ -1,8 +1,8 @@
 const express = require("express");
 const fs = require("fs");
 const router = express.Router();
-const testFolder = process.env.IMG_FOLDER || "/usr/src/imgs";
-const rawFolder = process.env.IMG_RAW || "/usr/src/imgsRaw";
+const testFolder = process.env.IMG_FOLDER || "/dbesync/processed";
+const rawFolder = process.env.IMG_RAW || "/dbelocal/raw";
 
 /* GET api listing. */
 router.get("/", (req, res) => {

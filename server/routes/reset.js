@@ -2,8 +2,8 @@ const express = require("express");
 const path = require("path");
 const router = express.Router();
 const imageProcessor = require("../processors/imageProcessor");
-const testFolder = process.env.IMG_TO_PROCESS_FOLDER || "/usr/src/imgsToProc";
-const rawFolder = process.env.IMG_RAW || "/usr/src/imgsRaw";
+const testFolder = process.env.IMG_TO_PROCESS_FOLDER || "/dbelocal/input";
+const rawFolder = process.env.IMG_RAW || "/dbelocal/raw";
 
 /* GET api listing. */
 router.get("/:file", (req, res) => {

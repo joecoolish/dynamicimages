@@ -26,8 +26,8 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.use('/api', api);
 app.use('/upload', uploads);
 
-app.use('/images', express.static(process.env.IMG_FOLDER || '/usr/src/imgs'))
-app.use('/raws', express.static(process.env.IMG_RAW || "/usr/src/imgsRaw"))
+app.use('/images', express.static(process.env.IMG_FOLDER || '/dbesync/processed'))
+app.use('/raws', express.static(process.env.IMG_RAW || "/dbelocal/raw"))
 
 app.use('/reset', reset)
 

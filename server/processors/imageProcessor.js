@@ -3,8 +3,8 @@ const sharp = require("sharp");
 const imagemin = require("imagemin");
 const imageminPngquant = require("imagemin-pngquant");
 const path = require("path");
-const rawFolder = process.env.IMG_RAW || "/usr/src/imgsRaw";
-const tempFolder = process.env.TEMP_IMGS || "/imgs/temp/";
+const rawFolder = process.env.IMG_RAW || "/dbelocal/raw";
+const tempFolder = process.env.TEMP_IMGS || "/dbelocal/temp/";
 
 const maxBytes = 4194304;
 
