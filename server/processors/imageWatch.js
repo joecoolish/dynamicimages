@@ -148,6 +148,14 @@ const imageProcessFunc = async newFile => {
 
   let faceDone = false;
   let ocrDone = false;
+  const newFileStream = fs.createReadStream(newFile, {
+    autoClose: true
+  });
+
+  newFileStream.on("error", err => {
+    log("newFileStream error!")
+    log(err);
+  });
 
   try {
     await waitFileReady(newFile, 250, 20);
@@ -187,9 +195,7 @@ const imageProcessFunc = async newFile => {
   });
 
   const formOcr = reqOcr.form();
-  formOcr.append("file", fs.createReadStream(newFile, {
-    autoClose: true
-  }));
+  formOcr.append("file", newFileStream);
 
   const reqFace = request.post(faceUrl, (err, resp, body) => {
     if (err) {
@@ -223,9 +229,7 @@ const imageProcessFunc = async newFile => {
   });
 
   const formFace = reqFace.form();
-  formFace.append("file", fs.createReadStream(newFile, {
-    autoClose: true
-  }));
+  formFace.append("file", newFileStream);
 };
 
 let timeout = null;
