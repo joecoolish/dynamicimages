@@ -32,7 +32,7 @@ connection.on("connect", () => {
   log("Darknet Connection established");
   if (wsCollection.length > 0) {
     connection.write(wsCollection[0] + "\n", () => {
-      wsCollection.splice(0, 1);
+      log("Darknet Connection splice " + wsCollection.splice(0, 1)[0]);
       // connection.end();
     });
   }
