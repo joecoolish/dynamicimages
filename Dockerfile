@@ -28,8 +28,9 @@ WORKDIR /usr/src/app
 COPY --from=builder /usr/src/app/dist/ ./dist/
 COPY --from=builder /usr/src/app/server/ ./server/
 COPY --from=builder /usr/src/app/server.js ./
+#COPY --from=builder /usr/src/app/ .
 
-RUN apk add vips-dev fftw-dev --update-cache --repository https://dl-3.alpinelinux.org/alpine/edge/testing/
+#RUN apk add vips-dev fftw-dev --update-cache --repository https://dl-3.alpinelinux.org/alpine/edge/testing/
 RUN apk add --update binutils g++ gcc make nasm
 
 # We also need the npm package express installed
