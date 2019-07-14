@@ -1,5 +1,5 @@
 <div class="row" *ngIf="data">
-  <div class="col-md-4" *ngFor="let image of data.images">
+  <div class="col-md-4" *ngFor="let image of images">
     <app-images [image]="image" [metadata]="getMetadata(image)"></app-images>
   </div>
   <div *ngIf="images.length === 0">
