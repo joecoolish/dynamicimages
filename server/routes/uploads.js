@@ -1,5 +1,5 @@
 if (process.env.NODE_ENV !== "production") {
-  require("dotenv").load();
+  require("dotenv").config();
 }
 
 const testFolder = process.env.IMG_TO_PROCESS_FOLDER || "/dbelocal/input";
