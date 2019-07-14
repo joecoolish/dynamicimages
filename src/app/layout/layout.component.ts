@@ -1,10 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { ImageDataService, IApiData } from '../image-data.service';
+import { Component, OnInit } from "@angular/core";
+import { ImageDataService, IApiData } from "../image-data.service";
 
 @Component({
-  selector: 'app-layout',
-  templateUrl: './layout.component.html',
-  styleUrls: ['./layout.component.css']
+  selector: "app-layout",
+  templateUrl: "./layout.component.html",
+  styleUrls: ["./layout.component.css"]
 })
 export class LayoutComponent implements OnInit {
   images = [];
@@ -21,7 +21,11 @@ export class LayoutComponent implements OnInit {
           this.data = ret;
           if (ret && ret.raw) {
             this.images = ret.raw.filter(img => {
-              return img.endsWith('.png') || img.endsWith('.jpg');
+              return (
+                img.toLowerCase().endsWith(".png") ||
+                img.toLowerCase().endsWith(".jpg") ||
+                img.toLowerCase().endsWith(".gif")
+              );
             });
           }
         });
@@ -30,7 +34,7 @@ export class LayoutComponent implements OnInit {
 
   refreshImages(status) {
     if (status === true) {
-      console.log('Uploaded successfully!');
+      console.log("Uploaded successfully!");
     }
   }
 
